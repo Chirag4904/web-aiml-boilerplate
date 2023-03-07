@@ -1,0 +1,47 @@
+version: '3'
+
+services:
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+  
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  celery_worker:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    # environment:
+    #   - CELERY_BROKER_URL=amqp://rabbitmq
+    #   - CELERY_RESULT_BACKEND=redis://redis:6379/
+    depends_on:
+      - rabbitmq
+    
+      # - redis
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    # environment:
+    #   - CELERY_RESULT_BACKEND=redis://redis:6379/
+    depends_on:
+      - rabbitmq
+      - celery_worker
+    restart: always
+
+volumes:
+  rabbitmq_data:
+
+
+
