@@ -1,0 +1,42 @@
+name: web-aiml-boilerplate
+services:
+  redis:
+    image: redis
+    reserved_name: redis
+    interfaces:
+      main:
+        port: 6379
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    interfaces:
+      main:
+        port: 5672
+      main2:
+        port: 15672
+    debug:
+      volumes:
+        volume:
+          mount_path: /var/lib/rabbitmq
+    reserved_name: rabbitmq
+  celery_worker:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    reserved_name: celery_worker
+    environment:
+      RABBITMQ_URL: ${{ services.rabbitmq.interfaces.main.url }}
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    interfaces:
+      main:
+        port: 3000
+    depends_on:
+      - rabbitmq
+      - celery_worker
+    reserved_name: backend
+    environment:
+      RABBITMQ_URL: ${{ services.rabbitmq.interfaces.main.url }}
